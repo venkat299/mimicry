@@ -1,0 +1,26 @@
+{
+  "name": "mimicry",
+  "description": "HTTP request client that mimics a browser.",
+  "tags": [
+    "http",
+    "util",
+    "utility"
+  ],
+  "version": "0.1.0",
+  "author": "Andrew Rogers <anrogers529@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/cpancake/mimicry.git"
+  },
+  "bugs": {
+    "url": "http://github.com/cpancake/mimicry/issues"
+  },
+  "license": "MIT",
+  "engines": [
+    "node >= 0.8.0"
+  ],
+  "main": "index.js",
+  "dependencies": {
+    "tough-cookie": "~0.12.1"
+  }
+}
