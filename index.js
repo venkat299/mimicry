@@ -8,7 +8,8 @@ var http  		= require('http'),
 	zlib   		= require('zlib'),
 	tough  		= require('tough-cookie'),
 	Cookie 		= tough.Cookie,
-	querystring = require('querystring');
+	querystring = require('querystring'),
+	https       = require('https');
 
 function Mimicry(useragent)
 {
@@ -52,7 +53,7 @@ function Mimicry(useragent)
 				if(headers['set-cookie'])
 					parseCookies(headers['set-cookie']);
 				if(headers['location'])
-					makeGet(headers['location'], customHeaders, callback);
+					makeRequest(headers['location'], customHeaders, callback);
 				else
 					callback(null, data.toString('utf8'));
 			}
@@ -64,7 +65,7 @@ function Mimicry(useragent)
 			headers['Content-Length'] = data.length;
 			makePostRequest(data, {
 				host: uri.host,
-				port: (uri.protocol == 'https' ? 443 : 80),
+				port: (uri.protocol == 'https:' ? 443 : 80),
 				path: uri.path,
 				headers: headers,
 				method: 'POST'
@@ -73,7 +74,7 @@ function Mimicry(useragent)
 		else
 			makeGetRequest({
 				host: uri.host,
-				port: (uri.protocol == 'https' ? 443 : 80),
+				port: (uri.protocol == 'https:' ? 443 : 80),
 				path: uri.path,
 				headers: headers
 			}, reqCallback);
@@ -82,7 +83,7 @@ function Mimicry(useragent)
 	// Internal function, make an HTTP request and return the response
 	function makeGetRequest(options, callback) {
 		var response = new Buffer(0);
-		http.get(options, function(resp) {
+		(options.port == 443 ? https : http).get(options, function(resp) {
 			resp.on('data', function(chunk) {
 				response = Buffer.concat([response, chunk], response.length + chunk.length);
 			});
@@ -104,7 +105,7 @@ function Mimicry(useragent)
 
 	function makePostRequest(data, options, callback) {
 		var response = new Buffer(0);
-		var post = http.request(options, function(resp) {
+		var post = (options.port == 443 ? https : http).request(options, function(resp) {
 			resp.on('data', function(chunk) {
 				response = Buffer.concat([response, chunk], response.length + chunk.length);
 			});
@@ -135,30 +136,30 @@ function Mimicry(useragent)
 		for(var c in cookies)
 		{
 			var cookie = cookies[c];
-			if(cookie.domain)
-			{
-				cookieJar[cookie.domain] = cookieJar[cookie.domain] || [];
+			cookie.domain = cookie.domain || 'none';
+			cookieJar[cookie.domain] = cookieJar[cookie.domain] || [];
+			// update cookie if it exists
+			if(cookieJar[cookie.domain].filter(function(v) {
+				return v.key == cookie.key;
+			}).length == 0)
 				cookieJar[cookie.domain].push(cookie);
-			}
 			else
-			{
-				cookieJar['none'] = cookieJar['none'] || [];
-				cookieJar['none'].push(cookie);
-			}
+				cookieJar[cookie.domain].filter(function(v) {
+					return v.key == cookie.key;
+				})[0].value = cookie.value;
 		}
 	}
 
 	function getCookies(domain) {
 		var cookieString = '';
-		for(var c in cookieJar[domain])
+		for(var d in cookieJar)
 		{
-			var cookie = cookieJar[domain][c];
-			cookieString += cookie.key + '=' + cookie.value + '; ';
-		}
-		for(var c in cookieJar['none'])
-		{
-			var cookie = cookieJar['none'][c];
-			cookieString += cookie.key + '=' + cookie.value + '; ';
+			if(tough.getPublicSuffix(d) == tough.getPublicSuffix(domain) || d == 'none')
+				for(var c in cookieJar[d])
+				{
+					var cookie = cookieJar[d][c];
+					cookieString += cookie.key + '=' + cookie.value + '; ';
+				}
 		}
 		return cookieString.replace(/; $/, '');
 	}
