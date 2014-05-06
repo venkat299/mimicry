@@ -55,7 +55,7 @@ function Mimicry(useragent)
 				if(headers['location'])
 					makeRequest(headers['location'], customHeaders, callback);
 				else
-					callback(null, data.toString('utf8'));
+					callback(null, data.toString('utf8'), headers);
 			}
 		}
 		if(postData)
